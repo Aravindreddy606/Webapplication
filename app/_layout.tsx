@@ -1,24 +1,53 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+import { useEffect } from 'react';
+import { Stack, useRouter } from 'expo-router';
+import { PaperProvider, MD3LightTheme } from 'react-native-paper';
+import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+    }),
+});
 
-export const unstable_settings = {
-  anchor: '(tabs)',
+const theme = {
+    ...MD3LightTheme,
+    colors: {
+        ...MD3LightTheme.colors,
+        primary: '#6200ea',
+        secondary: '#03dac6',
+    },
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+    const router = useRouter();
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+    useEffect(() => {
+        const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+            const data = response.notification.request.content.data;
+
+            if (data?.screen === 'video') {
+                router.push('/video');
+            }
+        });
+
+        return () => subscription.remove();
+    }, []);
+
+    return (
+        <PaperProvider theme={theme}>
+            <Stack
+                screenOptions={{
+                    headerStyle: { backgroundColor: theme.colors.primary },
+                    headerTintColor: '#fff',
+                    headerTitleStyle: { fontWeight: 'bold' },
+                }}
+            >
+                <Stack.Screen name="index" options={{ title: 'WebView Portal' }} />
+                <Stack.Screen name="video" options={{ title: 'HLS Player' }} />
+            </Stack>
+        </PaperProvider>
+    );
 }
